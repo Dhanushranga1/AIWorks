@@ -19,18 +19,51 @@ This project focuses on segmenting brain tumor regions from MRI scans using a U-
 - Evaluated using Dice and IoU  
 - Visualized predictions to compare actual vs predicted masks
 
-## U-Net Architecture (Simplified)  
-- **Input size:** 128x128x3  
-- **Encoder:**  
-  - 2 Conv2D layers → MaxPooling → Dropout (64 to 128 filters)  
-- **Bottleneck:**  
-  - 2 Conv2D layers with 256 filters  
-- **Decoder:**  
-  - Conv2DTranspose for upsampling  
-  - Skip connections from encoder  
-  - Dropout and Conv2D layers (128 to 64 filters)  
-- **Output:**  
-  - Conv2D(1, 1, activation='sigmoid') for binary segmentation
+## U-Net Architecture
+
+#### 🔹 Input
+- Input image size: **128 × 128 × 3**
+
+#### 🔹 Encoder (Downsampling Path)
+- **Block 1**:  
+  - Conv2D(64, 3×3, ReLU) → BatchNormalization  
+  - Conv2D(64, 3×3, ReLU) → BatchNormalization  
+  - MaxPooling2D
+
+- **Block 2**:  
+  - Conv2D(128, 3×3, ReLU) → BatchNormalization  
+  - Conv2D(128, 3×3, ReLU) → BatchNormalization  
+  - MaxPooling2D
+
+- **Block 3**:  
+  - Conv2D(256, 3×3, ReLU) → BatchNormalization  
+  - Conv2D(256, 3×3, ReLU) → BatchNormalization  
+  - MaxPooling2D
+
+#### 🔹 Bottleneck
+- Conv2D(512, 3×3, ReLU) → BatchNormalization  
+- Conv2D(512, 3×3, ReLU) → BatchNormalization
+
+#### 🔹 Decoder (Upsampling Path)
+- **Block 1**:  
+  - Conv2DTranspose(256, 2×2)  
+  - Concatenate with encoder Block 3 output  
+  - 2×Conv2D(256, 3×3, ReLU) → BatchNormalization
+
+- **Block 2**:  
+  - Conv2DTranspose(128, 2×2)  
+  - Concatenate with encoder Block 2 output  
+  - 2×Conv2D(128, 3×3, ReLU) → BatchNormalization
+
+- **Block 3**:  
+  - Conv2DTranspose(64, 2×2)  
+  - Concatenate with encoder Block 1 output  
+  - 2×Conv2D(64, 3×3, ReLU) → BatchNormalization
+
+#### 🔹 Output Layer
+- Conv2D(1, 1×1) with **sigmoid** activation  
+- Produces binary segmentation mask
+
 
 ## Model Details  
 - **Loss:** Binary Crossentropy  
