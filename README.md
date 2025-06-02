@@ -1,7 +1,9 @@
-# Medical Image Segmentation with U-Net
+#  Medical Image Segmentation with U-Net
 
 ## Project Overview  
-This project focuses on segmenting brain tumor regions from MRI scans using a U-Net model. The main goal was to build a basic but working image segmentation pipeline using Convolutional Neural Networks (CNNs), specifically U-Net.
+This project focuses on segmenting brain tumor regions from MRI scans using a U-Net model. The main goal was to build a working image segmentation project using Convolutional Neural Networks (CNNs), specifically U-Net.
+
+---
 
 ## Objectives  
 - Learn the basics of neural networks and CNNs  
@@ -10,82 +12,123 @@ This project focuses on segmenting brain tumor regions from MRI scans using a U-
 - Evaluate the model using standard segmentation metrics  
 - Visualize the predicted outputs against ground truth masks
 
+---
+
 ## What I Did  
-- Learned neural network fundamentals from Philip-Hua's book and YouTube (Sentdex)  
-- Explored CNN components like convolutions, ReLU, pooling, and upsampling  
-- Implemented a basic U-Net architecture with encoder, bottleneck, and decoder  
-- Preprocessed `.tif` images and masks, resized them to 128x128  
-- Trained the model on the dataset for 20 epochs  
-- Evaluated using Dice and IoU  
-- Visualized predictions to compare actual vs predicted masks
+- Learned neural network basics from Philip-Hua’s book and Sentdex tutorials  
+- Built a U-Net model with encoder–bottleneck–decoder structure  
+- Preprocessed `.tif` MRI images and masks  
+- Trained the model with **128×128** input initially (worked fine in memory)  
+- Moved to **256×256** for better segmentation — but Colab RAM crashed  
+- Solved it by:
+  - Using `train_test_split()` to split paths into train and validation  
+  - Creating a **custom batch generator** to load data on-the-fly  
+  - Generator handles **resizing, normalization, and mask binarization**  
+- Trained for 20 epochs  
+- Visualized predicted masks against actual ground truth
 
-## U-Net Architecture
+---
 
-#### 🔹 Input
-- Input image size: **128 × 128 × 3**
+## U-Net Architecture (256×256 Input)
 
-#### 🔹 Encoder (Downsampling Path)
-- **Block 1**:  
-  - Conv2D(64, 3×3, ReLU) → BatchNormalization  
-  - Conv2D(64, 3×3, ReLU) → BatchNormalization  
-  - MaxPooling2D
+### Input
+- Input size: **256 × 256 × 3**
 
-- **Block 2**:  
-  - Conv2D(128, 3×3, ReLU) → BatchNormalization  
-  - Conv2D(128, 3×3, ReLU) → BatchNormalization  
-  - MaxPooling2D
+### Encoder (Downsampling Path)
+- **Block 1**  
+  - Conv2D(64, 3×3, ReLU) → BatchNorm  
+  - Conv2D(64, 3×3, ReLU) → BatchNorm  
+  - MaxPooling2D  
+- **Block 2**  
+  - Conv2D(128, 3×3, ReLU) → BatchNorm  
+  - Conv2D(128, 3×3, ReLU) → BatchNorm  
+  - MaxPooling2D  
+- **Block 3**  
+  - Conv2D(256, 3×3, ReLU) → BatchNorm  
+  - Conv2D(256, 3×3, ReLU) → BatchNorm  
+  - MaxPooling2D  
 
-- **Block 3**:  
-  - Conv2D(256, 3×3, ReLU) → BatchNormalization  
-  - Conv2D(256, 3×3, ReLU) → BatchNormalization  
-  - MaxPooling2D
+### Bottleneck
+- Conv2D(512, 3×3, ReLU) → BatchNorm  
+- Conv2D(512, 3×3, ReLU) → BatchNorm  
 
-#### 🔹 Bottleneck
-- Conv2D(512, 3×3, ReLU) → BatchNormalization  
-- Conv2D(512, 3×3, ReLU) → BatchNormalization
+### Decoder (Upsampling Path)
+- **Block 1**  
+  - Conv2DTranspose(256) → Concatenate with encoder Block 3  
+  - 2×Conv2D(256, 3×3, ReLU) → BatchNorm  
+- **Block 2**  
+  - Conv2DTranspose(128) → Concatenate with encoder Block 2  
+  - 2×Conv2D(128, 3×3, ReLU) → BatchNorm  
+- **Block 3**  
+  - Conv2DTranspose(64) → Concatenate with encoder Block 1  
+  - 2×Conv2D(64, 3×3, ReLU) → BatchNorm  
 
-#### 🔹 Decoder (Upsampling Path)
-- **Block 1**:  
-  - Conv2DTranspose(256, 2×2)  
-  - Concatenate with encoder Block 3 output  
-  - 2×Conv2D(256, 3×3, ReLU) → BatchNormalization
+### Output Layer
+- Conv2D(1, 1×1, sigmoid) → Binary mask prediction
 
-- **Block 2**:  
-  - Conv2DTranspose(128, 2×2)  
-  - Concatenate with encoder Block 2 output  
-  - 2×Conv2D(128, 3×3, ReLU) → BatchNormalization
-
-- **Block 3**:  
-  - Conv2DTranspose(64, 2×2)  
-  - Concatenate with encoder Block 1 output  
-  - 2×Conv2D(64, 3×3, ReLU) → BatchNormalization
-
-#### 🔹 Output Layer
-- Conv2D(1, 1×1) with **sigmoid** activation  
-- Produces binary segmentation mask
-
+---
 
 ## Model Details  
-- **Loss:** Binary Crossentropy  
-- **Optimizer:** Adam  
-- **Batch size:** 8  
-- **Epochs:** 20  
-- **Image size:** 128x128  
+| Parameter      | Value            |
+|----------------|------------------|
+| Loss Function  | Binary Crossentropy + Dice Loss |
+| Optimizer      | Adam             |
+| Batch Size     | 8                |
+| Epochs         | 20               |
+| Input Size     | 256×256          |
 
-## Results  
-- **Dice Coefficient:** `0.6580`  
-- **IoU Score:** `0.4903`  
+---
 
-Some predictions were very close to the ground truth, but for a few complex cases the model failed to detect any tumor regions. Performance was reasonable considering the simple architecture and low image resolution.
+##  Results
 
-## Improvements Possible  
-- Increasing the number of epochs (comes at the cost of training time)  
-- Adding more Conv layers or deeper encoder-decoder blocks  
-- Using batch normalization and dropout more strategically  
-- Trying data augmentation to improve generalization  
+### Current (256×256 Model)  
+- **Mean Dice Coefficient:** `0.7409`  
+- **Mean IoU Score:** `0.7097`
+
+###  Previous (128×128 Model)  
+- **Mean Dice Coefficient:** `0.6580`  
+- **Mean IoU Score:** `0.4903`
+
+### Improvement Summary
+___________________________________________________
+| Metric        | 128×128 | 256×256 | Improvement |
+|---------------|---------|---------|-------------|
+| Dice Score    | 0.6580  | 0.7409  | +0.0829     |
+| IoU Score     | 0.4903  | 0.7097  | +0.2194     |
+___________________________________________________
+By increasing the input resolution and loading data in batches, the model was able to capture more spatial detail and generalize better.
+
+---
+
+## Problems Faced  
+- At 128×128 size, loading all images into memory worked fine  
+- But 256×256 caused **Colab to crash** due to RAM overload  
+- Fixed it by:
+  - **Splitting data paths** into train/val using `train_test_split()`  
+  - Creating a **custom Keras generator** that loads images/masks in batches  
+  - Generator resizes, normalizes, and binarizes masks on the fly  
+  - Helped save memory and made training stable
+
+---
+
+## Improvements Made  
+- Used batch-wise loading to avoid memory crashes  
+- Trained on higher resolution input (256x256)  
+- Added dropout layers for better generalization  
+- Visualized predictions and compared them with ground truth masks
+
+---
 
 ## Deliverables  
-- Trained U-Net model  
-- Jupyter Notebook containing the full workflow (preprocessing, training, evaluation)  
-- Segmentation result visualizations  
-- Dice and IoU evaluation metrics
+- Trained U-Net model (.h5)  
+- Full Jupyter Notebook with:
+  - Preprocessing  
+  - Custom generator  
+  - Model building and training  
+  - Evaluation metrics  
+  - Visualization  
+- Comparison between low and high resolution models  
+- Clear performance metrics (Dice & IoU)
+
+---
+
