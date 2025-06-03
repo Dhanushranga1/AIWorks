@@ -103,8 +103,7 @@ By increasing the input resolution and loading data in batches, the model was ab
 ## Problems Faced  
 - At 128×128 size, loading all images into memory worked fine  
 - But 256×256 caused **Colab to crash** due to RAM overload  
-- Fixed it by:
-  - **Splitting data paths** into train/val using `train_test_split()`  
+- Fixed it by: 
   - Creating a **custom Keras generator** that loads images/masks in batches  
   - Generator resizes, normalizes, and binarizes masks on the fly  
   - Helped save memory and made training stable
